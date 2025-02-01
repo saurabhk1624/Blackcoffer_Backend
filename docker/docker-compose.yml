@@ -1,0 +1,50 @@
+services:
+  django_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django
+    restart: always
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    volumes:
+      - ../:/BlackCoffer_Backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - backend
+
+  db:
+    image: mysql:8
+    container_name: mysql
+    restart: always
+    volumes:
+      - ../db/:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: blackcoffer
+      MYSQL_USER: black
+      MYSQL_PASSWORD: mysql@black
+      MYSQL_ROOT_PASSWORD: mysql@black
+    command:
+      - --mysql-native-password=ON
+    networks:
+      - backend
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: mysql@black
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - backend
+
+networks:
+  backend:
+    name: BlackCoffer
+    external: False

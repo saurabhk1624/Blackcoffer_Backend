@@ -1,0 +1,70 @@
+import json
+from django.http import JsonResponse
+from django.shortcuts import render
+from dashboard.functions import format_date,valid_year,valid_integer
+from dashboard.models import AnalyticsData, DropDown, StatusNum
+
+
+
+def import_data(request):
+    with open("jsondata.json", "r") as file:
+        data = json.load(file)
+        sheet = data.get("data")
+        if sheet is None:
+            return JsonResponse(
+                {"msg": "Invalid request type!"}, status=400
+            )
+        for i in sheet:
+            sector=i.get('sector').strip().upper()
+            topic=i.get('topic').strip().upper()
+            region=i.get('region').strip().upper()
+            country=i.get('country').strip().upper()
+            pestle=i.get('pestle').strip()
+            source=i.get('source').strip()
+            intensity=valid_integer(i.get('intensity'))
+            likelihood=valid_integer(i.get('likelihood'))
+            relevance=valid_integer(i.get('relevance'))
+            sector_parent=DropDown.objects.filter(value='SECTOR').exclude(status=StatusNum.DELETE).first()
+            if sector_parent is None:
+                sector_parent=DropDown.objects.create(value='SECTOR')
+            topic_parent=DropDown.objects.filter(value='TOPIC').exclude(status=StatusNum.DELETE).first()
+            if topic_parent is None:
+                topic_parent=DropDown.objects.create(value='TOPIC')
+            region_parent=DropDown.objects.filter(value='REGION').exclude(status=StatusNum.DELETE).first()
+            if region_parent is None:
+                region_parent=DropDown.objects.create(value='REGION')
+            country_parent=DropDown.objects.filter(value='COUNTRY').exclude(status=StatusNum.DELETE).first()
+            if country_parent is None:
+                country_parent=DropDown.objects.create(value='COUNTRY')
+            pestle_parent=DropDown.objects.filter(value='PESTLE').exclude(status=StatusNum.DELETE).first()    
+            if pestle_parent is None:
+                pestle_parent=DropDown.objects.create(value='PESTLE')
+            source_parent=DropDown.objects.filter(value='SOURCE').exclude(status=StatusNum.DELETE).first()    
+            if source_parent is None:
+                source_parent=DropDown.objects.create(value='SOURCE')
+            published=format_date(i.get('published').strip()) if i.get('published').strip() is not None else None
+            added=format_date(i.get('added').strip()) if i.get('added').strip() is not None else None
+            print(published,added,"test")
+            start_year=valid_year(i.get('start_year'))
+            end_year=valid_year(i.get('end_year'))
+            sector_value=DropDown.objects.filter(value=sector,pid__value='SECTOR').exclude(status=StatusNum.DELETE).first()
+            if sector_value is None:
+                sector_value=DropDown.objects.create(value=sector,pid=sector_parent)
+            topic_value=DropDown.objects.filter(value=topic,pid__value='TOPIC').exclude(status=StatusNum.DELETE).first()
+            if topic_value is None:
+                topic_value=DropDown.objects.create(value=topic,pid=topic_parent)
+            region_value=DropDown.objects.filter(value=region,pid__value='REGION').exclude(status=StatusNum.DELETE).first()
+            if region_value is None:
+                region_value=DropDown.objects.create(value=region,pid=region_parent)
+            country_value=DropDown.objects.filter(value=country,pid__value='COUNTRY').exclude(status=StatusNum.DELETE).first()
+            if country_value is None:
+                country_value=DropDown.objects.create(value=country,pid=country_parent)
+            pestle_value=DropDown.objects.filter(value=pestle,pid__value='PESTLE').exclude(status=StatusNum.DELETE).first()
+            if pestle_value is None:
+                pestle_value=DropDown.objects.create(value=pestle,pid=pestle_parent)
+            source_value=DropDown.objects.filter(value=source,pid__value='SOURCE').exclude(status=StatusNum.DELETE).first()
+            if source_value is None:
+                source_value=DropDown.objects.create(value=source,pid=source_parent)
+            AnalyticsData.objects.create(start_year=start_year,end_year=end_year,intensity=intensity,sector=sector_value,topic=topic_value,insight=i.get('insight'),url=i.get('url'),region=region_value,added=added,published=published,country=country_value,relevance=relevance,pestle=pestle_value,source=source_value,title=i.get('title'),likelihood=likelihood)
+        
+        return JsonResponse({'msg':'Data Imported Successfully'},status=200)
