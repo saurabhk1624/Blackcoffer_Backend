@@ -31,7 +31,7 @@ class AnalyticsData(BaseModel):
     sector=models.ForeignKey(DropDown,on_delete=models.SET_NULL,null=True,related_name="sector_dropdown")
     topic=models.ForeignKey(DropDown,on_delete=models.SET_NULL,null=True,related_name="topic_dropdown")
     insight=models.TextField(null=True)
-    url=models.URLField(null=True)
+    url=models.URLField(max_length=500,null=True)
     region=models.ForeignKey(DropDown,on_delete=models.SET_NULL,null=True,related_name="region_dropdown")
     added=models.DateTimeField(null=True)
     published=models.DateTimeField(null=True)

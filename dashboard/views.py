@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from dashboard.functions import format_date,valid_year,valid_integer
 from dashboard.models import AnalyticsData, DropDown, StatusNum
-
+from django.db.models import Count, Q
 
 
 def import_data(request):
@@ -68,3 +68,38 @@ def import_data(request):
             AnalyticsData.objects.create(start_year=start_year,end_year=end_year,intensity=intensity,sector=sector_value,topic=topic_value,insight=i.get('insight'),url=i.get('url'),region=region_value,added=added,published=published,country=country_value,relevance=relevance,pestle=pestle_value,source=source_value,title=i.get('title'),likelihood=likelihood)
         
         return JsonResponse({'msg':'Data Imported Successfully'},status=200)
+
+
+def dashboard_statistics(request):
+    if request.method=='GET':
+        request_type=request.GET.get('request_type')
+        if request_type is None:
+            return JsonResponse({'msg':'Invalid Format'},status=400)
+        if request_type=='country_statistics':
+            data = list(
+                    AnalyticsData.objects
+                    .exclude(status=StatusNum.DELETE)
+                    .exclude(Q(country__value__isnull=True) | Q(country__value=''))
+                    .values("country__value")
+                    .annotate(count=Count("country"))
+                    .order_by("-count")[:5]
+                )
+        if request_type=='sector_statistics':
+            data = list(
+                    AnalyticsData.objects
+                    .exclude(status=StatusNum.DELETE)
+                    .exclude(Q(sector__value__isnull=True) | Q(sector__value=''))
+                    .values("sector__value")
+                    .annotate(count=Count("sector"))
+                    .order_by("-count")[:7]
+                )
+        if request_type=='region_statistics':
+            data = list(
+                    AnalyticsData.objects
+                    .exclude(status=StatusNum.DELETE)
+                    .exclude(Q(region__value__isnull=True) | Q(region__value=''))
+                    .values("region__value")
+                    .annotate(count=Count("region"))
+                    .order_by("-count")[:7]
+                )
+        return JsonResponse({'msg':data},status=200)
