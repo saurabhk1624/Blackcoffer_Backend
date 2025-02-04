@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.db.models import Func,FloatField
 def format_date(date_str):
     if not date_str.strip() :
         return None
@@ -31,3 +32,9 @@ def valid_integer(data):
         return data
     else:
         return None 
+
+
+class Round(Func):
+    function = 'ROUND'
+    arity = 2
+    output_field = FloatField() 

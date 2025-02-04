@@ -1,9 +1,9 @@
 import json
 from django.http import JsonResponse
 from django.shortcuts import render
-from dashboard.functions import format_date,valid_year,valid_integer
+from dashboard.functions import format_date,valid_year,valid_integer,Round
 from dashboard.models import AnalyticsData, DropDown, StatusNum
-from django.db.models import Count, Q
+from django.db.models import Count, Q,Avg
 
 
 def import_data(request):
@@ -75,6 +75,7 @@ def dashboard_statistics(request):
         request_type=request.GET.get('request_type')
         if request_type is None:
             return JsonResponse({'msg':'Invalid Format'},status=400)
+        status=200
         if request_type=='country_statistics':
             data = list(
                     AnalyticsData.objects
@@ -84,7 +85,7 @@ def dashboard_statistics(request):
                     .annotate(count=Count("country"))
                     .order_by("-count")[:5]
                 )
-        if request_type=='sector_statistics':
+        elif request_type=='sector_statistics':
             data = list(
                     AnalyticsData.objects
                     .exclude(status=StatusNum.DELETE)
@@ -93,7 +94,7 @@ def dashboard_statistics(request):
                     .annotate(count=Count("sector"))
                     .order_by("-count")[:7]
                 )
-        if request_type=='region_statistics':
+        elif request_type=='region_statistics':
             data = list(
                     AnalyticsData.objects
                     .exclude(status=StatusNum.DELETE)
@@ -102,4 +103,24 @@ def dashboard_statistics(request):
                     .annotate(count=Count("region"))
                     .order_by("-count")[:7]
                 )
-        return JsonResponse({'msg':data},status=200)
+        elif request_type=='average_statistics':
+            data = (
+                    AnalyticsData.objects
+                    .exclude(status=StatusNum.DELETE)
+                    .aggregate(
+                        total_data=Count("*"),
+                        avg_likelihood=Round(Avg("likelihood", filter=~Q(likelihood__isnull=True)),2),
+                        avg_relevance=Round(Avg("relevance", filter=~Q(relevance__isnull=True)),2),
+                        avg_intensity=Round(Avg("intensity", filter=~Q(intensity__isnull=True)),2)
+                        )
+                    )
+        elif request_type=='overall_data':
+            data = list(
+                    AnalyticsData.objects
+                    .exclude(status=StatusNum.DELETE)
+                    .values('start_year','end_year','intensity','sector__value','topic__value','insight','url','region__value','added','published','country__value','relevance','pestle__value','source__value','title','likelihood')
+                )
+        else:
+            data="Invalid return type"
+            status=400
+        return JsonResponse({'msg':data},status=status)
