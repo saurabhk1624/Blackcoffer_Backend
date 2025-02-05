@@ -3,7 +3,8 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from dashboard.functions import format_date,valid_year,valid_integer,Round
 from dashboard.models import AnalyticsData, DropDown, StatusNum
-from django.db.models import Count, Q,Avg
+from django.db.models import Count, Q,Avg,F,CharField
+from django.db.models.functions import Cast
 
 
 def import_data(request):
@@ -115,11 +116,20 @@ def dashboard_statistics(request):
                         )
                     )
         elif request_type=='overall_data':
-            data = list(
-                    AnalyticsData.objects
-                    .exclude(status=StatusNum.DELETE)
-                    .values('start_year','end_year','intensity','sector__value','topic__value','insight','url','region__value','added','published','country__value','relevance','pestle__value','source__value','title','likelihood')
+           data = list(
+                AnalyticsData.objects
+                .exclude(status=StatusNum.DELETE)
+                .annotate(
+                    added_date=Cast(F("added"), CharField()),
+                    published_date=Cast(F("published"), CharField())
                 )
+                .values(
+                    'start_year', 'end_year', 'intensity', 'sector__value', 'topic__value',
+                    'insight', 'url', 'region__value', 'added_date', 'published_date',
+                    'country__value', 'relevance', 'pestle__value', 'source__value',
+                    'title', 'likelihood'
+                )
+            )
         else:
             data="Invalid return type"
             status=400
